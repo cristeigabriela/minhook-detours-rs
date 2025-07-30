@@ -41,6 +41,13 @@ pub enum Error {
     ModuleNotFound,
     #[error("The specified function is not found")]
     FunctionNotFound,
+
+    // -------------------------------------------------------------------------------------------------------
+    // Above are the MinHook-native possible errors, following are Rust-level ones. For consistency, even if
+    // it may fit, the previous results will not be used.
+    // -------------------------------------------------------------------------------------------------------
+    #[error("The specified pointer is known to be invalid")]
+    InvalidTarget,
 }
 
 impl From<MH_STATUS> for Error {
@@ -51,20 +58,20 @@ impl From<MH_STATUS> for Error {
     /// * `value` - [`MH_STATUS`] returned by C API.
     fn from(value: MH_STATUS) -> Self {
         match value {
-            MH_ERROR_ALREADY_INITIALIZED => Error::AlreadyInitialized,
-            MH_ERROR_NOT_INITIALIZED => Error::NotInitialized,
-            MH_ERROR_UNABLE_TO_UNINITIALIZE => Error::UnableToInitialize,
-            MH_ERROR_ALREADY_CREATED => Error::AlreadyCreated,
-            MH_ERROR_NOT_CREATED => Error::NotCreated,
-            MH_ERROR_ENABLED => Error::Enabled,
-            MH_ERROR_DISABLED => Error::Disabled,
-            MH_ERROR_NOT_EXECUTABLE => Error::NotExecutable,
-            MH_ERROR_DETOURS_TRANSACTION_BEGIN => Error::FailedTransactionBegin,
-            MH_ERROR_DETOURS_TRANSACTION_COMMIT => Error::FailedTransactionCommit,
-            MH_ERROR_UNSUPPORTED_FUNCTION => Error::UnsupportedFunction,
-            MH_ERROR_MEMORY_ALLOC => Error::FailedAllocatingMemory,
-            MH_ERROR_MODULE_NOT_FOUND => Error::ModuleNotFound,
-            MH_ERROR_FUNCTION_NOT_FOUND => Error::FunctionNotFound,
+            MH_ERROR_ALREADY_INITIALIZED => Self::AlreadyInitialized,
+            MH_ERROR_NOT_INITIALIZED => Self::NotInitialized,
+            MH_ERROR_UNABLE_TO_UNINITIALIZE => Self::UnableToInitialize,
+            MH_ERROR_ALREADY_CREATED => Self::AlreadyCreated,
+            MH_ERROR_NOT_CREATED => Self::NotCreated,
+            MH_ERROR_ENABLED => Self::Enabled,
+            MH_ERROR_DISABLED => Self::Disabled,
+            MH_ERROR_NOT_EXECUTABLE => Self::NotExecutable,
+            MH_ERROR_DETOURS_TRANSACTION_BEGIN => Self::FailedTransactionBegin,
+            MH_ERROR_DETOURS_TRANSACTION_COMMIT => Self::FailedTransactionCommit,
+            MH_ERROR_UNSUPPORTED_FUNCTION => Self::UnsupportedFunction,
+            MH_ERROR_MEMORY_ALLOC => Self::FailedAllocatingMemory,
+            MH_ERROR_MODULE_NOT_FOUND => Self::ModuleNotFound,
+            MH_ERROR_FUNCTION_NOT_FOUND => Self::FunctionNotFound,
             _ => unreachable!(),
         }
     }

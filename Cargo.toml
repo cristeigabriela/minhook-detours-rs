@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-minhook-detours-sys = "0.1.0"
+minhook-detours-sys = "0.1.1"
 thiserror = "2.0.12"
+winapi = { version = "0.3.9", features = ["ntdef", "minwindef"] }
+
+[dev-dependencies]
+serial_test = "3.2.0"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-pc-windows-msvc", "i686-pc-windows-msvc"]
