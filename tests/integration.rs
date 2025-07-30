@@ -115,3 +115,27 @@ fn hook_then_disable() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+#[serial]
+fn complex_type_test() -> Result<()> {
+    let mut guard = DetourGuard::new()?;
+
+    fn return_string() -> String {
+        "Hello, world!".to_owned()
+    }
+
+    fn return_string_hook() -> String {
+        "Bye, world!".to_owned()
+    }
+
+    let original = guard.create_and_enable_hook(return_string as _, return_string_hook as _)?;
+    // If `original` is null, there must be an issue.
+    assert_ne!(original, std::ptr::null_mut());
+
+    // If the hook was succesfully applied, then the function [`return_string`]
+    // should return the value specified by [`return_string_hook`].
+    assert_eq!(return_string(), "Bye, world!".to_owned());
+
+    Ok(())
+}
