@@ -132,6 +132,8 @@ dependencies = [
 [[package]]
 name = "minhook-detours-sys"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "246f051002270b9796f0d14d1b16e0b4b2858d88061d526efc4602eb5286b67d"
 dependencies = [
  "bindgen",
  "cc",
