@@ -1,0 +1,11 @@
+[package]
+name = "minhook-detours-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+minhook-detours-sys = { path = "../minhook-detours-sys" }
+thiserror = "2.0.12"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-pc-windows-msvc", "i686-pc-windows-msvc"]
