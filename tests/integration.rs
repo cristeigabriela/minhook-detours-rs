@@ -10,6 +10,7 @@ fn add_two_hook() -> Result<()> {
     // Generate a simple DetourGuard.
     let mut guard = DetourGuard::new()?;
 
+    // The type of the hooked function, and of the detour.
     type FunctionType = fn(i32, i32) -> i64;
 
     fn add_two(x: i32, y: i32) -> i64 {
@@ -36,6 +37,7 @@ fn two_sequential_guards() -> Result<()> {
     {
         let mut guard = DetourGuard::new()?;
 
+        // The type of the hooked function, and of the detour.
         type FunctionType = fn() -> u32;
 
         fn return_number() -> u32 {
@@ -58,6 +60,7 @@ fn two_sequential_guards() -> Result<()> {
     {
         let mut guard = DetourGuard::new()?;
 
+        // The type of the hooked function, and of the detour.
         type FunctionType = fn() -> u32;
 
         fn return_number_2() -> u32 {
@@ -88,6 +91,7 @@ fn hook_then_disable() -> Result<()> {
     unsafe {
         let mut guard = DetourGuard::new()?;
 
+        // The type of the hooked function, and of the detour.
         type FunctionType = unsafe extern "system" fn(i32, i32) -> i64;
 
         unsafe extern "system" fn add_two(lhs: i32, rhs: i32) -> i64 {
@@ -120,6 +124,7 @@ fn hook_then_disable() -> Result<()> {
 fn complex_type_test() -> Result<()> {
     let mut guard = DetourGuard::new()?;
 
+    // The type of the hooked function, and of the detour.
     type FunctionType = fn() -> String;
 
     fn return_string() -> String {
@@ -146,7 +151,10 @@ fn standard_original_usage() -> Result<()> {
     let mut guard = DetourGuard::new()?;
 
     unsafe {
+        // The type of the hooked function, and of the detour.
         type FunctionType = fn(String, String) -> String;
+
+        // Variable holding reference to original.
         static mut ORIGINAL: Option<&FunctionType> = None;
 
         fn return_joined_strings(x: String, y: String) -> String {
@@ -169,6 +177,8 @@ fn standard_original_usage() -> Result<()> {
         )?;
         ORIGINAL = Some(original);
 
+        // If the hook was succesfully applied, then the function [`return_joined_strings`]
+        // should return the value specified by [`return_joined_strings_hook`].
         assert_eq!(return_joined_strings("a".into(), "b".into()), "Bye, World!");
     }
 
