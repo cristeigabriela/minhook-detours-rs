@@ -78,6 +78,11 @@ impl<'a> DetourGuard<'a> {
         Ok(())
     }
 
+    /// Set the thread freezing method for when hooks are enabled or disabled.
+    /// 
+    /// ## Arguments
+    /// 
+    /// * `thread_freeze_method` - The method used for thread freezing. For further explaination, please refer to [`ThreadFreezeMethod`] for the documentation.
     pub fn set_thread_freeze_method(
         &mut self,
         thread_freeze_method: ThreadFreezeMethod,
@@ -92,6 +97,19 @@ impl<'a> DetourGuard<'a> {
         Err(Error::from(status))
     }
 
+    /// Registers entry for our `target` in the hooking engine's internal registry.
+    /// 
+    /// This action is inert without being combined with [`DetourGuard::enable_hook`], or [`DetourGuard::enable_all_hooks`].
+    /// 
+    /// # Arguments
+    /// 
+    /// * `target` - The function to be hooked.
+    /// * `detour` - The place where the function will jump to, while hooked.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(&T)` if the hook was succesfully registered. The lifetime of the reference is the lifetime of the [`DetourGuard`].
+    /// - `Err(minhook_detours_rs::error::Error)` if the operation failed.
     pub fn create_hook<T>(&mut self, target: *mut c_void, detour: *mut c_void) -> Result<&'a T> {
         // The `original` pointer must live as long as the [`DetourGuard`].
         self.original_pointers.push(std::ptr::null_mut());
@@ -114,6 +132,32 @@ impl<'a> DetourGuard<'a> {
         Err(Error::from(status))
     }
 
+    /// Registers entry for our `target` in the hooking engine's internal registry, and immediately enables it.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `target` - The function to be hooked.
+    /// * `detour` - The place where the function will jump to, while hooked.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(&T)` if the hook was succesfully applied. The lifetime of the reference is the lifetime of the [`DetourGuard`].
+    /// - `Err(minhook_detours_rs::error::Error)` if the operation failed.
+    pub fn create_and_enable_hook<T>(
+        &mut self,
+        target: *mut c_void,
+        detour: *mut c_void,
+    ) -> Result<&'a T> {
+        let result = self.create_hook(target, detour)?;
+        self.enable_hook(target)?;
+        Ok(result)
+    }
+
+    /// Looks for `target` in hooking engine internal registry, and enables the hook attached to it.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `target` - The function to be hooked.
     pub fn enable_hook(&mut self, target: *mut c_void) -> Result<()> {
         // Although it would be a valid API usage, you should instead refer to
         // [`DetourGuard::enable_all_hooks`] to not introduce multiple ways of
@@ -132,16 +176,7 @@ impl<'a> DetourGuard<'a> {
         Err(Error::from(status))
     }
 
-    pub fn create_and_enable_hook<T>(
-        &mut self,
-        target: *mut c_void,
-        detour: *mut c_void,
-    ) -> Result<&'a T> {
-        let result = self.create_hook(target, detour)?;
-        self.enable_hook(target)?;
-        Ok(result)
-    }
-
+    /// Goes through every entry in the hooking engine's internal registry, and enables all of them.
     pub fn enable_all_hooks(&mut self) -> Result<()> {
         let status = unsafe { MH_EnableHook(MH_ALL_HOOKS) };
 
@@ -153,6 +188,11 @@ impl<'a> DetourGuard<'a> {
         Err(Error::from(status))
     }
 
+    /// Looks for `target` in hooking engine internal registry, and disables the hook attached to it.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `target` - The function to be un-hooked.
     pub fn disable_hook(&mut self, target: *mut c_void) -> Result<()> {
         // Although it would be a valid API usage, you should instead refer to
         // [`DetourGuard::disable_all_hooks`] to not introduce multiple ways of
@@ -171,6 +211,7 @@ impl<'a> DetourGuard<'a> {
         Err(Error::from(status))
     }
 
+    /// Goes through every entry in the hooking engine's internal registry, and disables all of them.
     pub fn disable_all_hooks(&mut self) -> Result<()> {
         let status = unsafe { MH_DisableHook(MH_ALL_HOOKS) };
 
