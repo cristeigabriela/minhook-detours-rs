@@ -1,7 +1,12 @@
 [package]
 name = "minhook-detours-rs"
 version = "0.1.0"
+authors = ["Gabriela Cristei <cristei.g772@gmail.com"]
+description = "Rustic wrapper of minhook-detours-sys bindings."
 edition = "2024"
+
+readme = "README.md"
+repository = "https://github.com/cristeigabriela/minhook-detours-rs"
 
 [dependencies]
 minhook-detours-sys = "0.1.1"
