@@ -1,8 +1,4 @@
-
-use minhook_detours_rs::{
-    error::Result,
-    guard::DetourGuard,
-};
+use minhook_detours_rs::{error::Result, guard::DetourGuard};
 use serial_test::serial;
 
 // The `#[serial]` attribute is used to make sure the tests don't run in parallel, which could lead to
@@ -14,6 +10,8 @@ fn add_two_hook() -> Result<()> {
     // Generate a simple DetourGuard.
     let mut guard = DetourGuard::new()?;
 
+    type FunctionType = fn(i32, i32) -> i64;
+
     fn add_two(x: i32, y: i32) -> i64 {
         (x + y) as i64
     }
@@ -22,9 +20,7 @@ fn add_two_hook() -> Result<()> {
         (x - y) as i64
     }
 
-    // If `original` is null, there must be an issue.
-    let original = guard.create_and_enable_hook(add_two as _, add_two_hook as _)?;
-    assert_ne!(original, std::ptr::null_mut());
+    let _ = guard.create_and_enable_hook::<FunctionType>(add_two as _, add_two_hook as _)?;
 
     // If the hook was succesfully applied, then the function [`add_two`]
     // should instead substract the two arguments, resulting in 0.
@@ -40,6 +36,8 @@ fn two_sequential_guards() -> Result<()> {
     {
         let mut guard = DetourGuard::new()?;
 
+        type FunctionType = fn() -> u32;
+
         fn return_number() -> u32 {
             42
         }
@@ -48,9 +46,8 @@ fn two_sequential_guards() -> Result<()> {
             1337
         }
 
-        // If `original` is null, there must be an issue.
-        let original = guard.create_and_enable_hook(return_number as _, return_number_hook as _)?;
-        assert_ne!(original, std::ptr::null_mut());
+        let _ = guard
+            .create_and_enable_hook::<FunctionType>(return_number as _, return_number_hook as _)?;
 
         // If the hook was succesfully applied, then the function [`return_number`]
         // should return 1337 instead of 42.
@@ -61,6 +58,8 @@ fn two_sequential_guards() -> Result<()> {
     {
         let mut guard = DetourGuard::new()?;
 
+        type FunctionType = fn() -> u32;
+
         fn return_number_2() -> u32 {
             1337
         }
@@ -70,9 +69,10 @@ fn two_sequential_guards() -> Result<()> {
         }
 
         // If `original` is null, there must be an issue.
-        let original =
-            guard.create_and_enable_hook(return_number_2 as _, return_number_2_hook as _)?;
-        assert_ne!(original, std::ptr::null_mut());
+        let _ = guard.create_and_enable_hook::<FunctionType>(
+            return_number_2 as _,
+            return_number_2_hook as _,
+        )?;
 
         // If the hook was succesfully applied, then the function [`return_number_2`]
         // should return 42 instead of 1337.
@@ -88,6 +88,8 @@ fn hook_then_disable() -> Result<()> {
     unsafe {
         let mut guard = DetourGuard::new()?;
 
+        type FunctionType = unsafe extern "system" fn(i32, i32) -> i64;
+
         unsafe extern "system" fn add_two(lhs: i32, rhs: i32) -> i64 {
             (lhs + rhs) as i64
         }
@@ -96,10 +98,7 @@ fn hook_then_disable() -> Result<()> {
             (lhs - rhs) as i64
         }
 
-        let original = guard.create_and_enable_hook(add_two as _, add_two_hook as _)?;
-
-        // If `original` is null, there must be an issue.
-        assert_ne!(original, std::ptr::null_mut());
+        let _ = guard.create_and_enable_hook::<FunctionType>(add_two as _, add_two_hook as _)?;
 
         // If the hook was succesfully applied, then the function [`add_two`]
         // should instead substract the two arguments, resulting in 0.
@@ -121,21 +120,57 @@ fn hook_then_disable() -> Result<()> {
 fn complex_type_test() -> Result<()> {
     let mut guard = DetourGuard::new()?;
 
+    type FunctionType = fn() -> String;
+
     fn return_string() -> String {
-        "Hello, world!".to_owned()
+        "Hello, world!".into()
     }
 
     fn return_string_hook() -> String {
-        "Bye, world!".to_owned()
+        "Bye, world!".into()
     }
 
-    let original = guard.create_and_enable_hook(return_string as _, return_string_hook as _)?;
-    // If `original` is null, there must be an issue.
-    assert_ne!(original, std::ptr::null_mut());
+    let _ = guard
+        .create_and_enable_hook::<FunctionType>(return_string as _, return_string_hook as _)?;
 
     // If the hook was succesfully applied, then the function [`return_string`]
     // should return the value specified by [`return_string_hook`].
-    assert_eq!(return_string(), "Bye, world!".to_owned());
+    assert_eq!(return_string(), "Bye, world!");
+
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn standard_original_usage() -> Result<()> {
+    let mut guard = DetourGuard::new()?;
+
+    unsafe {
+        type FunctionType = fn(String, String) -> String;
+        static mut ORIGINAL: Option<&FunctionType> = None;
+
+        fn return_joined_strings(x: String, y: String) -> String {
+            format!("{x}, {y}!").into()
+        }
+
+        fn return_joined_strings_hook(_x: String, _y: String) -> String {
+            let x = "Bye".to_owned();
+            let y = "World".to_owned();
+
+            unsafe {
+                let original = ORIGINAL.unwrap();
+                original(x, y)
+            }
+        }
+
+        let original = guard.create_and_enable_hook::<FunctionType>(
+            return_joined_strings as _,
+            return_joined_strings_hook as _,
+        )?;
+        ORIGINAL = Some(original);
+
+        assert_eq!(return_joined_strings("a".into(), "b".into()), "Bye, World!");
+    }
 
     Ok(())
 }

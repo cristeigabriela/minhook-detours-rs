@@ -1,12 +1,12 @@
 //! Detour Guard.
 //!
 //! Responsible for instanciating MinHook engine, initializing it, and de-initializing it upon end.
-//! For the reason of `#[inline(always)]` spam, please refer [to this GitHub issue](https://github.com/m417z/minhook-detours/issues/1).
 
 use minhook_detours_sys::{
-    MH_CreateHook, MH_DisableHook, MH_EnableHook, MH_Initialize, MH_OK, MH_SetThreadFreezeMethod, MH_Uninitialize,
+    MH_CreateHook, MH_DisableHook, MH_EnableHook, MH_Initialize, MH_OK, MH_SetThreadFreezeMethod,
+    MH_Uninitialize,
 };
-use std::{ops::Drop, os::raw::c_void};
+use std::{marker::PhantomData, ops::Drop, os::raw::c_void};
 
 use crate::{
     error::{Error, Result},
@@ -24,10 +24,12 @@ const MH_ALL_HOOKS: *mut c_void = std::ptr::null_mut();
 /// It should only be constructed once at a time, for the duration of the hooks,
 /// otherwise it's going to return an error.
 #[derive(Debug)]
-pub struct DetourGuard {}
+pub struct DetourGuard<'a> {
+    original_pointers: Vec<*mut c_void>,
+    _phantom_data: PhantomData<&'a ()>,
+}
 
-impl DetourGuard {
-    #[inline(always)]
+impl<'a> DetourGuard<'a> {
     pub fn new() -> Result<Self> {
         // Attempt to initialize MinHook engine.
         let status = unsafe { MH_Initialize() };
@@ -47,7 +49,6 @@ impl DetourGuard {
     ///
     /// - `Ok(())` if the close was succesful.
     /// - `Err(minhook_detours_rs::error::Error)` if the deinitialization didn't succeed.
-    #[inline(always)]
     pub fn try_close(&mut self) -> Result<()> {
         // Also responsible for disabling all current hooks, and then removing them.
         let status = unsafe { MH_Uninitialize() };
@@ -68,7 +69,6 @@ impl DetourGuard {
     ///
     /// - `Ok(())` if the close was succesful. In the process, it also does [`std::mem::forget`] to prevent [`std::ops::Drop::drop`] from being called.
     /// - `Err(minhook_detours_rs::error::Error)` if the deinitialization didn't succeed.
-    #[inline(always)]
     pub fn close(mut self) -> Result<()> {
         // Attempt to close.
         self.try_close()?;
@@ -78,7 +78,6 @@ impl DetourGuard {
         Ok(())
     }
 
-    #[inline(always)]
     pub fn set_thread_freeze_method(
         &mut self,
         thread_freeze_method: ThreadFreezeMethod,
@@ -93,23 +92,28 @@ impl DetourGuard {
         Err(Error::from(status))
     }
 
-    #[inline(always)]
-    pub fn create_hook(&mut self, target: *mut c_void, detour: *mut c_void) -> Result<*mut c_void> {
-        let mut original = std::ptr::null_mut() as *mut c_void;
+    pub fn create_hook<T>(&mut self, target: *mut c_void, detour: *mut c_void) -> Result<&'a T> {
+        // The `original` pointer must live as long as the [`DetourGuard`].
+        self.original_pointers.push(std::ptr::null_mut());
+
+        // Get `original`.
+        let original = self.original_pointers.last_mut().unwrap();
+
+        // Cast to pointer.
+        let original = original as *mut *mut c_void;
 
         // Only responsible for registering a hook in the engine's structure, but does nothing
         // without the hook being enabled. Refer to [`DetourGuard::enable_hook`].
-        let status = unsafe { MH_CreateHook(target as _, detour as _, &mut original as _) };
+        let status = unsafe { MH_CreateHook(target as _, detour as _, original as _) };
 
         if status == MH_OK {
             // We succesfully registered a hook!
-            return Ok(original);
+            return Ok(unsafe { (original as *mut T).as_ref().unwrap() });
         }
 
         Err(Error::from(status))
     }
 
-    #[inline(always)]
     pub fn enable_hook(&mut self, target: *mut c_void) -> Result<()> {
         // Although it would be a valid API usage, you should instead refer to
         // [`DetourGuard::enable_all_hooks`] to not introduce multiple ways of
@@ -128,18 +132,16 @@ impl DetourGuard {
         Err(Error::from(status))
     }
 
-    #[inline(always)]
-    pub fn create_and_enable_hook(
+    pub fn create_and_enable_hook<T>(
         &mut self,
         target: *mut c_void,
         detour: *mut c_void,
-    ) -> Result<*mut c_void> {
+    ) -> Result<&'a T> {
         let result = self.create_hook(target, detour)?;
         self.enable_hook(target)?;
         Ok(result)
     }
 
-    #[inline(always)]
     pub fn enable_all_hooks(&mut self) -> Result<()> {
         let status = unsafe { MH_EnableHook(MH_ALL_HOOKS) };
 
@@ -151,7 +153,6 @@ impl DetourGuard {
         Err(Error::from(status))
     }
 
-    #[inline(always)]
     pub fn disable_hook(&mut self, target: *mut c_void) -> Result<()> {
         // Although it would be a valid API usage, you should instead refer to
         // [`DetourGuard::disable_all_hooks`] to not introduce multiple ways of
@@ -170,7 +171,6 @@ impl DetourGuard {
         Err(Error::from(status))
     }
 
-    #[inline(always)]
     pub fn disable_all_hooks(&mut self) -> Result<()> {
         let status = unsafe { MH_DisableHook(MH_ALL_HOOKS) };
 
@@ -183,7 +183,7 @@ impl DetourGuard {
     }
 }
 
-impl Drop for DetourGuard {
+impl<'a> Drop for DetourGuard<'a> {
     fn drop(&mut self) {
         if let Err(e) = self.try_close() {
             eprintln!("DetourGuard drop failed: {e:?}");
@@ -191,8 +191,11 @@ impl Drop for DetourGuard {
     }
 }
 
-impl Default for DetourGuard {
+impl<'a> Default for DetourGuard<'a> {
     fn default() -> Self {
-        Self {}
+        Self {
+            original_pointers: Vec::new(),
+            _phantom_data: Default::default(),
+        }
     }
 }
