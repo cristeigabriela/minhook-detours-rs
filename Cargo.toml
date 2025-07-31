@@ -5,6 +5,7 @@ authors = ["Gabriela Cristei <cristei.g772@gmail.com"]
 description = "Rustic wrapper of minhook-detours-sys bindings."
 edition = "2024"
 
+license = "BSD-2-Clause"
 readme = "README.md"
 repository = "https://github.com/cristeigabriela/minhook-detours-rs"
 

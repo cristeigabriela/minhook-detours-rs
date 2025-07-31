@@ -22,3 +22,6 @@ unsafe extern "system" fn add_two_hook(lhs: i32, rhs: i32) -> i64 {
 
 let original = guard.create_and_enable_hook::<FunctionType>(add_two as _, add_two_hook as _)?;
 ```
+
+# License
+[License: BSD-2-Clause](./LICENSE)
