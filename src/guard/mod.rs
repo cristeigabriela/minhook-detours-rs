@@ -240,3 +240,5 @@ impl<'a> Default for DetourGuard<'a> {
         }
     }
 }
+
+unsafe impl<'a> Send for DetourGuard<'a> { }
