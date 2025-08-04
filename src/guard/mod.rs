@@ -6,7 +6,7 @@ use minhook_detours_sys::{
     MH_CreateHook, MH_DisableHook, MH_EnableHook, MH_Initialize, MH_OK, MH_SetThreadFreezeMethod,
     MH_Uninitialize,
 };
-use std::{marker::PhantomData, ops::Drop, os::raw::c_void};
+use std::{collections::LinkedList, marker::PhantomData, ops::Drop, os::raw::c_void};
 
 use crate::{
     error::{Error, Result},
@@ -25,7 +25,7 @@ const MH_ALL_HOOKS: *mut c_void = std::ptr::null_mut();
 /// otherwise it's going to return an error.
 #[derive(Debug)]
 pub struct DetourGuard<'a> {
-    original_pointers: Vec<*mut c_void>,
+    original_pointers: LinkedList<*mut c_void>,
     _phantom_data: PhantomData<&'a ()>,
 }
 
@@ -112,10 +112,10 @@ impl<'a> DetourGuard<'a> {
     /// - `Err(minhook_detours_rs::error::Error)` if the operation failed.
     pub fn create_hook<T>(&mut self, target: *mut c_void, detour: *mut c_void) -> Result<&'a T> {
         // The `original` pointer must live as long as the [`DetourGuard`].
-        self.original_pointers.push(std::ptr::null_mut());
+        self.original_pointers.push_back(std::ptr::null_mut());
 
         // Get `original`.
-        let original = self.original_pointers.last_mut().unwrap();
+        let original = self.original_pointers.back_mut().unwrap();
 
         // Cast to pointer.
         let original = original as *mut *mut c_void;
@@ -235,7 +235,7 @@ impl<'a> Drop for DetourGuard<'a> {
 impl<'a> Default for DetourGuard<'a> {
     fn default() -> Self {
         Self {
-            original_pointers: Vec::new(),
+            original_pointers: LinkedList::new(),
             _phantom_data: Default::default(),
         }
     }
