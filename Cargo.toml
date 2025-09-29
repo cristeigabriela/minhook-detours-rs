@@ -1,19 +1,19 @@
 [package]
 name = "minhook-detours-rs"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Gabriela Cristei <cristei.g772@gmail.com"]
 description = "Rustic wrapper of minhook-detours-sys bindings."
 edition = "2024"
 
 license = "BSD-2-Clause"
 readme = "README.md"
-repository = "https://github.com/cristeigabriela/minhook-detours-rs"
+repository = "https://github.com/metalbear-co/minhook-detours-rs"
 
 keywords = ["minhook", "slimdetours", "hook", "detour", "crossplatform"]
 categories = ["external-ffi-bindings"]
 
 [dependencies]
-minhook-detours-sys = "0.1.2"
+minhook-detours-sys = { git = "https://github.com/metalbear-co/minhook-detours-sys.git", rev = "3ad2f470c2f1ecb44bddcd065c0e8919ac734b74" }
 thiserror = "2.0.12"
 winapi = { version = "0.3.9", features = ["ntdef", "minwindef"] }
 
