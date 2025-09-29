@@ -1,8 +1,6 @@
 # minhook-detours-rs
 
-Available on [crates.io](https://crates.io/crates/minhook-detours-rs).
-
-Rustic wrapper of [minhook-detours-sys](https://crates.io/crates/minhook-detours-sys) bindings.
+Rustic wrapper of [minhook-detours-sys](https://github.com/metalbear-co/minhook-detours-sys) bindings.
 
 # Example
 
